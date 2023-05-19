@@ -1,0 +1,214 @@
+UseCase Diagram:
+@startuml
+left to right direction
+
+actor User
+actor Collaborators
+
+rectangle "to-do list" {
+  User --> (Create Task)
+  User --> (View Task List)
+  User --> (Assign Task)
+  User --> (Share Task List)
+  User --> (Log in)
+  
+  Collaborators --> (View Shared Task List)
+  Collaborators --> (Edit Shared Task)
+  Collaborators --> (Complete Asign Task)
+
+  (Edit Task) .> (View Task List): extend 
+  (Delete Task) .> (View Task List): extend
+  (Create Task) .> (Set Task Priority): include
+  (Create Task) --> (View Task List)
+  (Log in) --> (View Task List)
+  (Share Task List) --> (View Shared Task List)
+}
+@enduml
+
+----------------------------------------------------------------------------
+
+Class Diagram:
+@startuml
+
+class User {
+  -username: string
+  -password: string
+  +createTask(task: Task)
+  +viewTaskList(): List<Task>
+  +editTask(task: Task)
+  +deleteTask(task: Task)
+  +assignTask(task: Task, collaborator: Collaborator)
+  +shareTaskList(taskList: List<Task>, collaborator: Collaborator)
+  +setTaskPriority(task: Task, priority: Priority)
+}
+
+class Collaborator {
+  -username: string
+  -password: string
+  +viewSharedTaskList(): List<Task>
+  +editSharedTask(task: Task)
+  +completeSharedTask(task: Task)
+}
+
+class Task {
+  -title: string
+  -description: string
+  -dueDate: date
+  -priority: Priority
+  -owner: User
+  -collaborators: List<Collaborator>
+  +addCollaborator(collaborator: Collaborator)
+  +removeCollaborator(collaborator: Collaborator)
+}
+
+enum Priority {
+  URGENT
+  IMPORTANT
+  LOW_PRIORITY
+}
+
+User *-- Task
+Collaborator o-- Task
+User --> Collaborator : Share with
+Task --> Priority : Has a
+
+@enduml
+
+----------------------------------------------------------------------------
+
+Sequence diagram:
+@startuml
+actor User
+
+User -> WebApp: Creates a new task
+WebApp -> TaskManager: Creates a new task object
+TaskManager -> WebApp: Returns task object
+WebApp -> User: Displays task form to the user
+User -> WebApp: Fills in task details and submits the form
+WebApp -> TaskManager: Saves task details
+TaskManager -> Database: Inserts new task into the database
+Database -> TaskManager: Returns task ID
+TaskManager -> WebApp: Returns task ID
+WebApp -> User: Displays the task in the task list
+User -> WebApp: Views task list
+WebApp -> TaskManager: Retrieves task list from database
+TaskManager -> Database: Queries database for task list
+Database -> TaskManager: Returns task list
+TaskManager -> WebApp: Returns task list
+WebApp -> User: Displays task list
+User -> WebApp: Selects a task
+WebApp -> TaskManager: Retrieves task details
+TaskManager -> Database: Queries database for task details
+Database -> TaskManager: Returns task details
+TaskManager -> WebApp: Returns task details
+WebApp -> User: Displays task details
+User -> WebApp: Marks task as complete
+WebApp -> TaskManager: Updates task status
+TaskManager -> Database: Updates task status in the database
+Database -> TaskManager: Returns status update confirmation
+TaskManager -> WebApp: Returns status update confirmation
+WebApp -> User: Displays task as completed
+User -> WebApp: Assign a task to collaborators
+WebApp -> TaskManager: Creates a new task objects
+TaskManager -> Database: Queries database to add the task to the collaborators
+Database -> TaskManager: Returns tasks IDs
+TaskManager -> WebApp: Returns tasks IDs
+WebApp -> User: Displays shared task list
+User -> WebApp: Select Task to Edit
+WebApp  -> TaskManager: Get Task Details
+TaskManager -> Database: Retrieve Task Details
+Database  -> TaskManager: Task Details
+TaskManager -> WebApp: Display Task Details
+WebApp -> User: Task detalis 
+User -> WebApp: Edit Task Details
+WebApp -> TaskManager: Update Task Details
+TaskManager -> Database: Update Task
+Database  -> TaskManager: Success/Failure
+TaskManager -> WebApp: Display Result
+WebApp -> User: Display task list
+User -> WebApp: Select Task to Delete
+WebApp -> TaskManager: Get Task Details
+TaskManager -> Database: Retrieve Task Details
+Database -> TaskManager: Task Details
+TaskManager -> WebApp: Display Task Details
+WebApp -> User: Display task Detalis
+User -> WebApp: Confirm Delete
+WebApp -> TaskManager: Delete Task
+TaskManager -> Database: Delete Task
+Database -> TaskManager: Success/Failure
+TaskManager -> WebApp: Display Result
+WebApp -> User: Display task list
+
+@enduml
+
+----------------------------------------------------------------------------
+
+Activity diagrams:
+@startuml
+|User|
+
+start
+:Create task;
+if (Collaborator needed?) then (yes)
+  :Add collaborator;
+else (no)
+endif
+:Assign priority;
+:Save task;
+:View task list;
+while (Tasks remaining ?) is (yes)
+  :Select task;
+  if (Task done ?) then (yes)
+    :Mark task as complete;
+  else (no)
+    if (Edit needed ?) then (yes)
+      :Edit task;
+      :Save task;
+    else (no)
+    endif
+  endif
+endwhile (no)
+:Share task list;
+stop
+
+@enduml
+
+----------------------------------------------------------------------------
+
+State Machine Diagram:
+@startuml
+hide empty description
+
+[*] --> Wlecome_Screen
+Wlecome_Screen: Login
+Wlecome_Screen: Register
+Wlecome_Screen --> Registration: Not Registered
+Registration --> Logged_In: Registered
+Wlecome_Screen --> Logged_In: Log in
+Logged_In: View tasks
+Logged_In: Create Task
+Logged_In: Assign Tasks
+Logged_In: Share Task
+Logged_In --> Share_Task: Share Tasks
+Share_Task: Share Task with Collaborators
+Logged_In --> Assign_Task: Assign Tasks
+Assign_Task: Assign Task For Someone
+Logged_In --> Create_Task: Create Task
+Create_Task: Set Priority
+Create_Task: Cancel
+Create_Task --> Logged_In: Cancel Request
+Create_Task --> Set_Priority: Give Weight to the task
+Set_Priority: Save
+Logged_In --> View_Tasks: View Tasks Details
+View_Tasks --> Logged_In: Return to Dashboard
+View_Tasks: Edit Task
+View_Tasks: Delete Task
+View_Tasks --> Edit_Task: Edit
+Edit_Task: Make Change
+Edit_Task --> View_Tasks : Save Changes
+View_Tasks --> Delete_Task : Delete
+Delete_Task: Delete the Selected task
+Delete_Task --> View_Tasks: Save Changes
+Logged_In --> [*]: Logout
+
+@enduml
